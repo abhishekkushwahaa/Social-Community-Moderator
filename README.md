@@ -2,8 +2,6 @@
 
 This is a full-stack, AI-powered platform that helps automatically moderate user content in online communities. It uses the **Google Gemini API** to detect inappropriate posts in the background and lets moderators review flagged content in real-time.
 
----
-
 ## Key Features
 
 - **AI Moderation:** Automatically checks posts for spam, toxicity, or rule violations using the Google Gemini API.
@@ -12,8 +10,6 @@ This is a full-stack, AI-powered platform that helps automatically moderate user
 - **Secure Login:** Supports email/password login and **Google OAuth 2.0**.
 - **Modern Stack:** Built with Node.js, Express, PostgreSQL, Prisma, React, and Vite.
 - **Containerized:** Everything runs in Docker for easy setup and consistent deployments.
-
----
 
 ## Tech Stack
 
