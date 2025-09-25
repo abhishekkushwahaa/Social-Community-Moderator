@@ -1,0 +1,29 @@
+{
+  "name": "backend",
+  "module": "index.ts",
+  "type": "module",
+  "version": "0.0.0",
+  "scripts": {
+    "start": "bun run index.js",
+    "dev": "bun run --watch index.js",
+    "analysis": "bun run src/workers/analysisWorker.js",
+    "build": "bun run build"
+  },
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest",
+    "prisma": "^6.16.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@prisma/client": "^6.16.2",
+    "bcryptjs": "^3.0.2",
+    "bullmq": "^5.58.7",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "socket.io": "^4.8.1"
+  }
+}
