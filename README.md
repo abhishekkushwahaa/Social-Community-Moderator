@@ -5,9 +5,8 @@ This is a full-stack, AI-powered platform that helps automatically moderate user
 ## Key Features
 
 - **AI Moderation:** Automatically checks posts for spam, toxicity, or rule violations using the Google Gemini API.
-- **Background Processing:** Uses **Redis** and **BullMQ** to handle AI checks in the background so the app stays fast.
 - **Real-Time Dashboard:** Moderators see flagged posts instantly with a **React** dashboard and **Socket.IO** updates.
-- **Secure Login:** Supports email/password login and **Google OAuth 2.0**.
+- **Secure Login:** Supports email/password login and **OAuth 2.0**.
 - **Modern Stack:** Built with Node.js, Express, PostgreSQL, Prisma, React, and Vite.
 - **Containerized:** Everything runs in Docker for easy setup and consistent deployments.
 
@@ -65,7 +64,7 @@ cd backend
 bun install
 
 # Frontend
-cd ../client
+cd frontend
 bun install
 ```
 
