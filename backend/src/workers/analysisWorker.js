@@ -1,27 +1,28 @@
-import "dotenv/config";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import prisma from "../config/db.js";
+import "dotenv/config";
 import { io } from "../../index.js";
+import prisma from "../config/db.js";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 export const analyzePost = async (postId) => {
   console.log(`Analyzing post ${postId} with Gemini...`);
 
   const post = await prisma.post.findUnique({ where: { id: postId } });
-  if (!post) {
-    console.error(`Post with ID ${postId} not found for analysis.`);
-    return;
-  }
+  if (!post) return;
 
   const prompt = `
-    You are a community moderator AI. Analyze the following user post based on these rules:
-    1. No hate speech or personal attacks.
-    2. No spam or self-promotion.
-    3. No NSFW content.
-    User Post: "${post.content}"
-    Respond ONLY with a JSON object with two keys: "isViolation" (boolean) and "justification" (string).
+    As an expert content moderator, analyze the following text for violations (hate speech, harassment, spam, sexual content, etc.).
+    Respond ONLY with a JSON object:
+    {
+      "isViolation": boolean,
+      "category": string,
+      "confidence": float,
+      "justification": string
+    }
+
+    Post: "${post.content}"
   `;
 
   try {
@@ -34,17 +35,22 @@ export const analyzePost = async (postId) => {
       .trim();
     const analysis = JSON.parse(text);
 
-    if (analysis.isViolation) {
+    if (analysis.isViolation && analysis.confidence > 0.7) {
       const updatedPost = await prisma.post.update({
         where: { id: postId },
         data: {
-          status: "PENDING_REVIEW",
-          aiReason: analysis.justification,
+          content:
+            "This post was removed by the moderator due to inappropriate content.",
+          status: "REMOVED",
+          aiReason: `[${analysis.category}] ${analysis.justification}`,
         },
         include: { author: true },
       });
+
       io.emit("new_flagged_post", updatedPost);
-      console.log(`Post ${postId} flagged for review.`);
+      console.log(
+        `Post ${postId} flagged for review. Category: ${analysis.category}`
+      );
     } else {
       console.log(`Post ${postId} passed Gemini analysis.`);
     }

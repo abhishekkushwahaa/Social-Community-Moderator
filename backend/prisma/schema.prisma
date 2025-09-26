@@ -30,7 +30,9 @@ model Account {
 enum PostStatus {
   PUBLISHED
   PENDING_REVIEW
+  REMOVED
 }
+
 
 model Post {
   id        String     @id @default(cuid())
@@ -41,3 +43,4 @@ model Post {
   author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
   aiReason  String?
 }
+

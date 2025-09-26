@@ -70,10 +70,10 @@ bun install
 
 ### Running the App
 
-**1. Start all services with Docker**
+**1. Start all Services**
 
 ```bash
-docker-compose up --build
+bun run dev
 ```
 
 **2. Set up the database**
@@ -81,7 +81,7 @@ docker-compose up --build
 In a new terminal window:
 
 ```bash
-docker-compose exec api bunx prisma migrate dev --name init
+bunx prisma migrate dev --name init
 ```
 
 ### Access the App
