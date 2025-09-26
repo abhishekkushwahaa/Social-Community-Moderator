@@ -7,6 +7,7 @@ import {
   Flex,
   HStack,
   IconButton,
+  Image,
   Menu,
   MenuButton,
   MenuItem,
@@ -18,12 +19,13 @@ import {
 } from "@chakra-ui/react";
 import axios from "axios";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FiEdit, FiMoreHorizontal, FiTrash2 } from "react-icons/fi";
+import { FiCamera, FiEdit, FiMoreHorizontal, FiTrash2 } from "react-icons/fi";
 
 const API_URL = "http://localhost:3001/api";
 
 const Dashboard = ({ token, displayName }) => {
   const [content, setContent] = useState("");
+  const [image, setImage] = useState(null); // <-- store selected image
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingPostId, setEditingPostId] = useState(null);
   const [feed, setFeed] = useState([]);
@@ -39,7 +41,7 @@ const Dashboard = ({ token, displayName }) => {
         const res = await axios.get(`${API_URL}/posts`, {
           headers: { Authorization: `Bearer ${authToken}` },
         });
-        setFeed(res.data); // <-- use feed state
+        setFeed(res.data);
       } catch (error) {
         console.error("Failed to fetch posts", error);
         toast({
@@ -54,9 +56,7 @@ const Dashboard = ({ token, displayName }) => {
   );
 
   useEffect(() => {
-    if (token) {
-      fetchAllPosts(token);
-    }
+    if (token) fetchAllPosts(token);
   }, [token, fetchAllPosts]);
 
   const handleInput = (e) => {
@@ -67,12 +67,17 @@ const Dashboard = ({ token, displayName }) => {
     }
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) setImage(file);
+  };
+
   const handleCreatePost = async (e) => {
     e.preventDefault();
-    if (!content.trim()) {
+    if (!content.trim() && !image) {
       toast({
         title: "Content required",
-        description: "Please enter some text before posting.",
+        description: "Please enter some text or attach an image.",
         status: "warning",
         duration: 2000,
         position: "top-right",
@@ -82,35 +87,40 @@ const Dashboard = ({ token, displayName }) => {
 
     setIsSubmitting(true);
     try {
+      const formData = new FormData();
+      formData.append("content", content);
+      if (image) formData.append("image", image);
+
       let res;
       if (editingPostId) {
-        res = await axios.put(
-          `${API_URL}/posts/${editingPostId}`,
-          { content },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        res = await axios.put(`${API_URL}/posts/${editingPostId}`, formData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         setFeed((prevFeed) =>
           prevFeed.map((p) => (p.id === editingPostId ? res.data : p))
         );
-        setEditingPostId(null); // reset after editing
+        setEditingPostId(null);
       } else {
-        res = await axios.post(
-          `${API_URL}/posts`,
-          { content },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        res = await axios.post(`${API_URL}/posts`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        });
         setFeed([res.data, ...feed]);
       }
 
       setContent("");
+      setImage(null);
       toast({
         title: editingPostId ? "Post updated!" : "Posted successfully!",
         status: "success",
         duration: 2000,
         position: "top-right",
       });
-    } catch {
+    } catch (err) {
+      console.error(err);
       toast({
         title: "Error",
         description: "Could not post content.",
@@ -128,6 +138,9 @@ const Dashboard = ({ token, displayName }) => {
     if (postToEdit) {
       setContent(postToEdit.content);
       setEditingPostId(postId);
+      if (postToEdit.imageUrl) {
+        setImage(postToEdit.imageUrl); // optional preview of existing image
+      }
     }
   };
 
@@ -184,18 +197,44 @@ const Dashboard = ({ token, displayName }) => {
                   _hover={{ bg: "gray.600" }}
                   transition="all 0.2s"
                 />
+
+                {image && (
+                  <Box maxH="300px" overflow="hidden" borderRadius="md">
+                    <Image
+                      src={URL.createObjectURL(image)}
+                      alt="preview"
+                      objectFit="cover"
+                      w="100%"
+                    />
+                  </Box>
+                )}
+
                 <Flex justify="space-between" align="center">
-                  <Text
-                    color={content.length > MAX_CHARS ? "red.400" : "gray.400"}
-                    fontSize="sm"
-                  >
-                    {content.length}/{MAX_CHARS}
-                  </Text>
+                  <HStack spacing={2}>
+                    <Button
+                      as="label"
+                      htmlFor="imageUpload"
+                      leftIcon={<FiCamera />}
+                      size="sm"
+                      variant="outline"
+                      cursor="pointer"
+                    >
+                      Attach
+                    </Button>
+                    <input
+                      type="file"
+                      id="imageUpload"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={handleImageChange}
+                    />
+                  </HStack>
+
                   <Button
                     colorScheme="blue"
                     type="submit"
                     isLoading={isSubmitting}
-                    isDisabled={!content.trim()}
+                    isDisabled={!content.trim() && !image}
                     borderRadius="full"
                     px={6}
                     onClick={handleCreatePost}
@@ -251,7 +290,6 @@ const Dashboard = ({ token, displayName }) => {
                             transform: "scale(1.1)",
                           }}
                           transition="all 0.2s"
-                          // ✅ safe check here
                           isDisabled={postAuthor !== displayName}
                         />
                         <MenuList bg="gray.800" borderColor="gray.700" p={0}>
@@ -278,6 +316,16 @@ const Dashboard = ({ token, displayName }) => {
                     </Flex>
 
                     <Text color="gray.200">{post.content}</Text>
+                    {post.imageUrl && (
+                      <Image
+                        src={post.imageUrl}
+                        alt="post"
+                        borderRadius="md"
+                        mt={2}
+                        maxH="300px"
+                        objectFit="cover"
+                      />
+                    )}
                     <Divider borderColor="gray.700" mt={2} />
                   </VStack>
                 </HStack>

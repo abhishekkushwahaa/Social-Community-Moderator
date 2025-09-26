@@ -38,6 +38,7 @@ model Post {
   id        String     @id @default(cuid())
   content   String
   authorId  String
+  imageUrl  String?    // optional
   status    PostStatus @default(PUBLISHED)
   createdAt DateTime   @default(now())
   author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)

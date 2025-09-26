@@ -1,10 +1,12 @@
+import { uploadToCloudinary } from "../config/cloudinary.js";
 import prisma from "../config/db.js";
-import { analyzePost } from "../workers/analysisWorker.js";
+import { analyzeImage, analyzePost } from "../workers/analysisWorker.js";
 
 export const createPost = async (req, res) => {
   const { content } = req.body;
+  const imageUrl = req.file ? req.file.path : null;
   const post = await prisma.post.create({
-    data: { content, authorId: req.user.id },
+    data: { content, imageUrl, authorId: req.user.id },
     include: {
       author: {
         select: {
@@ -13,7 +15,7 @@ export const createPost = async (req, res) => {
       },
     },
   });
-
+  if (imageUrl) analyzeImage(post.id, imageUrl);
   res.status(201).json(post);
 
   analyzePost(post.id);
