@@ -25,7 +25,8 @@ const API_URL = "http://localhost:3001/api";
 
 const Dashboard = ({ token, displayName }) => {
   const [content, setContent] = useState("");
-  const [image, setImage] = useState(null); // <-- store selected image
+  const [image, setImage] = useState(null); // File
+  const [previewUrl, setPreviewUrl] = useState(null); // string (local or cloud)
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingPostId, setEditingPostId] = useState(null);
   const [feed, setFeed] = useState([]);
@@ -35,6 +36,7 @@ const Dashboard = ({ token, displayName }) => {
 
   const firstLetter = displayName.charAt(0).toUpperCase();
 
+  // Fetch all posts
   const fetchAllPosts = useCallback(
     async (authToken) => {
       try {
@@ -59,6 +61,7 @@ const Dashboard = ({ token, displayName }) => {
     if (token) fetchAllPosts(token);
   }, [token, fetchAllPosts]);
 
+  // Auto resize input
   const handleInput = (e) => {
     if (e.target.value.length <= MAX_CHARS) {
       setContent(e.target.value);
@@ -67,11 +70,24 @@ const Dashboard = ({ token, displayName }) => {
     }
   };
 
+  // Handle image select
   const handleImageChange = (e) => {
     const file = e.target.files[0];
-    if (file) setImage(file);
+    setImage(file || null);
   };
 
+  // Manage preview URL (for local or existing image)
+  useEffect(() => {
+    if (image instanceof File) {
+      const objectUrl = URL.createObjectURL(image);
+      setPreviewUrl(objectUrl);
+      return () => URL.revokeObjectURL(objectUrl); // cleanup
+    } else {
+      setPreviewUrl(image || null);
+    }
+  }, [image]);
+
+  // Create / Update post
   const handleCreatePost = async (e) => {
     e.preventDefault();
     if (!content.trim() && !image) {
@@ -89,12 +105,15 @@ const Dashboard = ({ token, displayName }) => {
     try {
       const formData = new FormData();
       formData.append("content", content);
-      if (image) formData.append("image", image);
+      if (image instanceof File) formData.append("image", image);
 
       let res;
       if (editingPostId) {
         res = await axios.put(`${API_URL}/posts/${editingPostId}`, formData, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
         });
 
         setFeed((prevFeed) =>
@@ -113,6 +132,8 @@ const Dashboard = ({ token, displayName }) => {
 
       setContent("");
       setImage(null);
+      setPreviewUrl(null);
+
       toast({
         title: editingPostId ? "Post updated!" : "Posted successfully!",
         status: "success",
@@ -133,23 +154,35 @@ const Dashboard = ({ token, displayName }) => {
     }
   };
 
+  // Edit post
   const handleEditPost = (postId) => {
     const postToEdit = feed.find((p) => p.id === postId);
     if (postToEdit) {
       setContent(postToEdit.content);
       setEditingPostId(postId);
       if (postToEdit.imageUrl) {
-        setImage(postToEdit.imageUrl); // optional preview of existing image
+        setImage(null); // not a file
+        setPreviewUrl(postToEdit.imageUrl); // set cloudinary URL
       }
     }
   };
 
+  // Delete post
   const handleDeletePost = async (postId) => {
     try {
       await axios.delete(`${API_URL}/posts/${postId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       setFeed((prevFeed) => prevFeed.filter((p) => p.id !== postId));
+
+      if (editingPostId === postId) {
+        setEditingPostId(null);
+        setContent("");
+        setImage(null);
+        setPreviewUrl(null);
+      }
+
       toast({
         title: "Post deleted",
         status: "success",
@@ -198,10 +231,10 @@ const Dashboard = ({ token, displayName }) => {
                   transition="all 0.2s"
                 />
 
-                {image && (
+                {previewUrl && (
                   <Box maxH="300px" overflow="hidden" borderRadius="md">
                     <Image
-                      src={URL.createObjectURL(image)}
+                      src={previewUrl}
                       alt="preview"
                       objectFit="cover"
                       w="100%"
@@ -234,12 +267,12 @@ const Dashboard = ({ token, displayName }) => {
                     colorScheme="blue"
                     type="submit"
                     isLoading={isSubmitting}
-                    isDisabled={!content.trim() && !image}
+                    isDisabled={!content.trim() && !previewUrl}
                     borderRadius="full"
                     px={6}
                     onClick={handleCreatePost}
                   >
-                    Post
+                    {editingPostId ? "Update" : "Post"}
                   </Button>
                 </Flex>
               </VStack>
