@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  # Backend Service
+  backend:
+    build: ./backend
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - PORT=${PORT}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+
+  # Frontend Service
+  frontend:
+    build: ./client
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
